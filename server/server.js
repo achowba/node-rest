@@ -9,6 +9,7 @@ const { ObjectID } = require('mongodb');
 const { mongoose } = require('./db/mongoose-config');
 const { Todo } = require('./models/todo');
 const { User } = require('./models/user');
+const { authenticate } = require('./middleware/auth');
 
 const port = process.env.PORT;
 
@@ -18,7 +19,7 @@ app.use(bodyParser.json());
 
 // create route for posting data to the api
 app.post('/todos', (req, res) => {
-    console.log(req.body);
+    // console.log(req.body);
 
     // create a todo from the data that comes from the post request
     let todo = new Todo({
@@ -107,9 +108,32 @@ app.patch('/todos/:id', (req, res) => {
     });
 });
 
+
+// post a user
+app.post('/users', (req, res) => {
+    let body = _.pick(req.body, ['email', 'password']);
+    // create a user from the data that comes from the post request
+    let user = new User (body);
+
+    user.save().then((user) => {
+        return user.generateAuthToken();
+        // res.send(user);
+    }).then((token) => {
+        res.header('x-auth', token).send(user);
+    }).catch((e) => {
+        // console.log(e);
+        res.status(400).send(e);
+    });
+});
+
+app.get('/users/me', authenticate, (req, res) => {
+    res.send(req.user);
+});
+
 app.listen(port, () => {
-    console.log(`\nServer started on port: ${port}\n`);
-    console.log(`This app is running on ${env} mode\n\n\n`);
+    let date = new Date();
+    console.log(`\nThis app is running on ${env} mode\n`);
+    console.log(`Server started on port ${port} at ${date.toLocaleTimeString()}\n`);
 });
 
 module.exports = {

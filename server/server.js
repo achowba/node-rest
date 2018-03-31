@@ -46,7 +46,7 @@ app.get('/todos', (req, res) => {
 app.get('/todos/:id', (req, res) => {
     let todoId = req.params.id;
     if (ObjectID.isValid(todoId) === false) {
-        return res.status(400).send();
+        return res.status(404).send();
     }
 
     Todo.findById(todoId).then((todo) => {
@@ -115,7 +115,7 @@ app.post('/users', (req, res) => {
     // create a user from the data that comes from the post request
     let user = new User (body);
 
-    user.save().then((user) => {
+    user.save().then(() => {
         return user.generateAuthToken();
         // res.send(user);
     }).then((token) => {
@@ -128,6 +128,18 @@ app.post('/users', (req, res) => {
 
 app.get('/users/me', authenticate, (req, res) => {
     res.send(req.user);
+});
+
+app.post('/users/login', (req, res) => {
+    let body = _.pick(req.body, ['email', 'password']);
+
+    User.findByCredentials(body.email, body.password).then((user) => {
+        return user.generateAuthToken().then((token) => {
+            res.header('x-auth', token).send(user);
+        });
+    }).catch((e) => {
+        res.status(400).send(e);
+    });
 });
 
 app.listen(port, () => {

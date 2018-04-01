@@ -48,11 +48,22 @@ UserSchema.methods.generateAuthToken = function () {
     let token = jwt.sign ({
         _id: user._id.toHexString(),
         access
-    }, 'rnm137').toString();
+    }, process.env.JWT_SECRET).toString();
     user.tokens.push({access, token});
 
     return user.save().then(() => {
         return token;
+    });
+};
+
+UserSchema.methods.removeToken = function (token) {
+    let user = this;
+    return user.update({
+        $pull: {
+            tokens: {
+                token
+            }
+        }
     });
 };
 
@@ -61,7 +72,7 @@ UserSchema.statics.findByToken = function (token) {
     let decoded;
 
     try {
-        decoded = jwt.verify(token, 'rnm137')
+        decoded = jwt.verify(token, process.env.JWT_SECRET)
     } catch (e) {
         return Promise.reject();
     }
